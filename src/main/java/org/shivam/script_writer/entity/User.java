@@ -29,7 +29,7 @@ public class User {
     @JoinColumn(name = "user_category_id", nullable = false)
     UserCategory userCategory;
 
-    @OneToMany(mappedBy = "createdBy")
+    @OneToMany(mappedBy = "user")
     private List<Script> scripts = new ArrayList<>();
 
 

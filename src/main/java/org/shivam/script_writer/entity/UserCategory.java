@@ -26,4 +26,7 @@ public class UserCategory {
     @OneToMany(mappedBy = "userCategory")
     private List<User> users = new ArrayList<>();
 
+    public UserCategory(String name) {
+        this.name = name;
+    }
 }
