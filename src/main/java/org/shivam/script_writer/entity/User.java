@@ -33,4 +33,10 @@ public class User {
     private List<Script> scripts = new ArrayList<>();
 
 
+    public User(String name, String email, String password, UserCategory userCategory) {
+        this.name = name;
+        this.email  = email;
+        this.passwordHash = password;
+        this.userCategory = userCategory;
+    }
 }
