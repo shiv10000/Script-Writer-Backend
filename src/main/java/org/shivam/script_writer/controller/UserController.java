@@ -1,47 +1,55 @@
 package org.shivam.script_writer.controller;
 
 
-import org.shivam.script_writer.dto.UserCategoryRequest;
-import org.shivam.script_writer.dto.UserCategoryResponse;
-import org.shivam.script_writer.service.UserCategoryService;
+import org.shivam.script_writer.dto.UserRequest;
+import org.shivam.script_writer.dto.UserResponse;
+import org.shivam.script_writer.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+
 @RequestMapping("/user")
 public class UserController {
+    private final UserService userService;
 
-    private final UserCategoryService userCategoryService;
-
-    public UserController(UserCategoryService userCategoryService) {
-        this.userCategoryService = userCategoryService;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
-    @PostMapping("/category")
-    public ResponseEntity<UserCategoryResponse> setUserCategory( @RequestBody UserCategoryRequest userCategoryRequest){
-        return  ResponseEntity.ok(userCategoryService.createUserCategory(userCategoryRequest));
+    @PostMapping("/user")
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserRequest userRequest) {
+
+        UserResponse userResponse = userService.createUser(userRequest);
+
+        return ResponseEntity.ok(userResponse);
     }
 
-    @PutMapping("/category/{id}")
-    public ResponseEntity<UserCategoryResponse> updateUserCategory(@PathVariable Long id, @RequestBody UserCategoryRequest userCategoryRequest){
-        return ResponseEntity.ok(userCategoryService.updateUserCategory(id,userCategoryRequest));
+
+    @DeleteMapping("/user/{id}")
+    public ResponseEntity<UserResponse> deleteUser(@PathVariable Long id) {
+
+        return ResponseEntity.ok(userService.deleteUser(id));
     }
 
-    @GetMapping("/category")
-    public ResponseEntity<List<UserCategoryResponse>> getALLUserCategory(){
-        return ResponseEntity.ok(userCategoryService.getAllUserCategory());
+    @PutMapping("/user/{id}")
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserRequest userRequest) {
+        return ResponseEntity.ok(userService.updateUser(id, userRequest));
+
     }
 
-    @DeleteMapping("/category")
-    public ResponseEntity<UserCategoryResponse> deleteUserCategory( @RequestBody UserCategoryRequest userCategoryRequest){
-        return  ResponseEntity.ok(userCategoryService.deleteUserCategory(userCategoryRequest));
+    @GetMapping("/user")
+    public ResponseEntity<List<UserResponse>> getAllUsers(){
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @GetMapping("/category/{id}")
-    public ResponseEntity<UserCategoryResponse> getUserCategoryById(@PathVariable Long id){
-        return ResponseEntity.ok(userCategoryService.getUserCategoryById(id));
+    @GetMapping("user/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
     }
+
 
 }
+
