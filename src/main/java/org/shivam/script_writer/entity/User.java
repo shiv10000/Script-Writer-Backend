@@ -25,7 +25,7 @@ public class User {
     String email;
     private String passwordHash;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_category_id", nullable = false)
     UserCategory userCategory;
 
@@ -38,5 +38,6 @@ public class User {
         this.email  = email;
         this.passwordHash = password;
         this.userCategory = userCategory;
+
     }
 }

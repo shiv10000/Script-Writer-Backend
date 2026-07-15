@@ -7,6 +7,7 @@ import org.shivam.script_writer.entity.UserCategory;
 import org.shivam.script_writer.repo.UserCategoryRepository;
 import org.shivam.script_writer.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,26 +15,31 @@ import java.util.List;
 @Service
 public class UserService {
 
+    private static final String DEFAULT_USER_CATEGORY = "USER";
+    private static final String ADMIN_CATEGORY = "ADMIN";
+
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private UserCategoryRepository userCategoryRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+
     public UserResponse createUser(UserRequest userRequest){
         if(userRepository.findByName(userRequest.name()).isPresent()){
             throw new RuntimeException("User already exist");
         }
 
-        UserCategory userCategory = userCategoryRepository.findById(userRequest.userCategoryId()).orElseThrow(
-                () -> new  RuntimeException("user category is null")
-        );
-
+        UserCategory userCategory = userCategoryRepository.findByName(DEFAULT_USER_CATEGORY)
+                .orElseGet(() -> userCategoryRepository.save(new UserCategory(DEFAULT_USER_CATEGORY)));
 
         User savedUser = userRepository.save(new User(
                 userRequest.name(),
                 userRequest.email(),
-                userRequest.password(),
+                passwordEncoder.encode(userRequest.password()),
                 userCategory));
 
 
@@ -41,7 +47,7 @@ public class UserService {
                 savedUser.getId(),
                 savedUser.getName(),
                 savedUser.getEmail(),
-                userRequest.userCategoryId()
+                savedUser.getUserCategory().getId()
         );
     }
     public UserResponse deleteUser(Long userId){
@@ -59,14 +65,9 @@ public class UserService {
     public UserResponse updateUser(Long id,UserRequest userRequest){
         User existingUser = userRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found user"));
 
-        UserCategory userCategory = userCategoryRepository.findById(userRequest.userCategoryId()).orElseThrow(
-                () -> new  RuntimeException("user category is null")
-        );
-
         existingUser.setEmail(userRequest.email());
         existingUser.setName(userRequest.name());
-        existingUser.setPasswordHash(userRequest.password());
-        existingUser.setUserCategory(userCategory);
+        existingUser.setPasswordHash(passwordEncoder.encode(userRequest.password()));
 
         userRepository.save(existingUser);
 
@@ -102,6 +103,24 @@ public class UserService {
                 user.getName(),
                 user.getEmail(),
                 user.getUserCategory().getId()
+        );
+    }
+
+    public UserResponse promoteToAdmin(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        UserCategory adminCategory = userCategoryRepository.findByName(ADMIN_CATEGORY)
+                .orElseGet(() -> userCategoryRepository.save(new UserCategory(ADMIN_CATEGORY)));
+
+        user.setUserCategory(adminCategory);
+        User savedUser = userRepository.save(user);
+
+        return new UserResponse(
+                savedUser.getId(),
+                savedUser.getName(),
+                savedUser.getEmail(),
+                savedUser.getUserCategory().getId()
         );
     }
 
