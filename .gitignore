@@ -4,6 +4,27 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Secrets and local configuration ###
+.env
+.env.*
+!.env.example
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+src/main/resources/application-local.yaml
+*.pem
+*.key
+*.p12
+*.jks
+
+### Frontend ###
+node_modules/
+dist/
+coverage/
+*.log
+
+### OS files ###
+.DS_Store
+
 ### STS ###
 .apt_generated
 .classpath
