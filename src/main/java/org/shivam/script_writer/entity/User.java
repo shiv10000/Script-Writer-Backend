@@ -38,6 +38,5 @@ public class User {
         this.email  = email;
         this.passwordHash = password;
         this.userCategory = userCategory;
-
     }
 }

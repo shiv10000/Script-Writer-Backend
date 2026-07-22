@@ -15,8 +15,12 @@ public class UserPrincipal implements UserDetails {
 
     private User user;
 
-    UserPrincipal(User user){
+    public UserPrincipal(User user){
         this.user = user;
+    }
+
+    public User getUser() {
+        return user;
     }
 
     @Override
@@ -26,6 +30,7 @@ public class UserPrincipal implements UserDetails {
         );
     }
 
+
     @Override
     public @Nullable String getPassword() {
         return user.getPasswordHash();
@@ -34,5 +39,6 @@ public class UserPrincipal implements UserDetails {
     @Override
     public String getUsername() {
         return user.getName();
+
     }
 }

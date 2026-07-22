@@ -7,6 +7,7 @@ import org.shivam.script_writer.entity.UserCategory;
 import org.shivam.script_writer.repo.UserCategoryRepository;
 import org.shivam.script_writer.repo.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -123,11 +124,6 @@ public class UserService {
                 savedUser.getUserCategory().getId()
         );
     }
-
-
-
-
-
 
 
 

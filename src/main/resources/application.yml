@@ -1,0 +1,4 @@
+app:
+  jwt:
+    secret: ${JWT_SECRET:o/3aU2DSLeWx86Qm0iAlRB/eILqO3ehn31yYIS4KJGo=}
+    expiration-minutes: 60
