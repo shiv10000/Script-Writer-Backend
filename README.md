@@ -48,6 +48,8 @@ The project is currently focused entirely on backend development. Authentication
 - Request and service-performance logging
 - PostgreSQL persistence through Spring Data JPA
 - Environment-based secret and database configuration
+- Redis-backed, time-limited email verification codes
+- Google OpenID Connect sign-in with verified-email validation
 
 ### Modeled but not yet exposed through APIs
 
@@ -64,9 +66,11 @@ The project is currently focused entirely on backend development. Authentication
 | Framework | Spring Boot 4.1.0 |
 | Web | Spring Web MVC |
 | Authentication | Spring Security + OAuth2 Resource Server |
+| Social sign-in | Spring Security OAuth2 Client + Google OpenID Connect |
 | Tokens | Nimbus JOSE JWT, HS256 |
 | Persistence | Spring Data JPA / Hibernate |
 | Database | PostgreSQL |
+| Temporary data | Redis |
 | Password hashing | BCrypt |
 | Build | Maven Wrapper |
 | Boilerplate reduction | Lombok |
@@ -82,15 +86,19 @@ flowchart LR
     SV["Service Layer"]
     RP["Spring Data Repositories"]
     DB[("PostgreSQL")]
+    RD[("Redis")]
     JT["JWT Encoder / Decoder"]
+    GO["Google OpenID Connect"]
 
     C -->|"HTTP + Bearer token"| S
     S --> CT
     CT --> SV
     SV --> RP
     RP --> DB
+    SV --> RD
     S <--> JT
     SV --> JT
+    S <--> GO
 ```
 
 The API follows a conventional layered structure: controllers define the HTTP contract, services contain business rules, repositories provide persistence, and Spring Security validates every protected request before it reaches a controller.
@@ -174,7 +182,7 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     Client->>API: POST /user/login
-    API->>Security: Authenticate username and password
+    API->>Security: Authenticate email and password
     Security->>DB: Load user and verify BCrypt hash
     DB-->>Security: User and authority
     Security-->>API: Authenticated principal
@@ -202,6 +210,9 @@ sequenceDiagram
 | `/user/login` | Public |
 | `/user/refresh` | Public, requires a valid refresh token in the body |
 | `/user/logout` | Public, revokes the supplied refresh token |
+| `/oauth2/authorization/google` | Public, starts Google sign-in |
+| `/login/oauth2/code/google` | Public, OAuth2 callback handled by Spring Security |
+| `/oauth/profile` | Requires an `OIDC_USER` authority from a Google sign-in session |
 | `/admin/**` | Requires the `ADMIN` authority |
 | All other routes | Requires a valid JWT access token |
 
@@ -227,6 +238,8 @@ http://localhost:8080
 | `POST` | `/user/login` | Authenticate and receive access and refresh tokens | Public |
 | `POST` | `/user/refresh` | Exchange a valid refresh token for a new access token | Public |
 | `POST` | `/user/logout` | Revoke a refresh token | Public |
+| `GET` | `/oauth2/authorization/google` | Start Google OpenID Connect sign-in | Public |
+| `GET` | `/oauth/profile` | Return the signed-in Google profile | Google OIDC session |
 
 ### Users
 
@@ -268,7 +281,7 @@ curl -X POST http://localhost:8080/user/register \
 curl -X POST http://localhost:8080/user/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "demo-user",
+    "email": "demo@example.com",
     "password": "choose-a-strong-password"
   }'
 ```
@@ -298,12 +311,50 @@ curl http://localhost:8080/user/user \
   -H "Authorization: Bearer <your-access-token>"
 ```
 
+## Redis email verification
+
+Redis stores the six-digit verification code created when a user registers or tries to log in with an unverified account. Codes are keyed by email address, expire after 3,000 seconds (50 minutes), and are deleted after successful verification.
+
+Redis is configured with `REDIS_HOST` and `REDIS_PORT` (defaulting to `localhost:6379`). Start Redis before running the API; for example, with Docker:
+
+```bash
+docker run --name script-writer-redis -p 6379:6379 redis:7-alpine
+```
+
+To verify an account, submit the code sent by email:
+
+```bash
+curl -X POST http://localhost:8080/user/verify \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@example.com","code":"123456"}'
+```
+
+## Google sign-in
+
+Google sign-in uses OpenID Connect. Configure an OAuth 2.0 Web application in Google Cloud and add this authorized redirect URI:
+
+```text
+http://localhost:8080/login/oauth2/code/google
+```
+
+Set the client credentials in `.env`:
+
+```dotenv
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+```
+
+Then open `http://localhost:8080/oauth2/authorization/google` in a browser. On a successful Google sign-in, the application accepts only identities with a subject, email address, and verified email. It creates a local `USER` account for a new Google identity. If a password-based account already uses that email address, sign-in is rejected rather than automatically linking the accounts.
+
+Google sign-in establishes Spring Security's OAuth2 session; it does not issue this API's JWT/refresh-token pair. While that session is active, `GET /oauth/profile` returns the Google subject, name, email, and email-verification status.
+
 ## Getting started
 
 ### Prerequisites
 
 - Java 25
 - PostgreSQL
+- Redis
 - Git
 - OpenSSL, or another way to generate a strong Base64 secret
 
@@ -345,6 +396,10 @@ DB_URL=jdbc:postgresql://localhost:5432/company_db
 DB_USERNAME=your_postgres_username
 DB_PASSWORD=your_postgres_password
 JWT_SECRET=your_generated_base64_secret
+REDIS_HOST=localhost
+REDIS_PORT=6379
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
 ```
 
 The `.env` file is ignored by Git. Never commit real database credentials, JWT secrets, access tokens, or refresh tokens.
@@ -418,6 +473,10 @@ The current context test starts the Spring application, so it requires valid env
 | `APP_BOOTSTRAP_ADMIN_NAME` | When bootstrap is enabled | Empty | Initial admin username |
 | `APP_BOOTSTRAP_ADMIN_EMAIL` | When bootstrap is enabled | Empty | Initial admin email |
 | `APP_BOOTSTRAP_ADMIN_PASSWORD` | When bootstrap is enabled | Empty | Initial admin password |
+| `REDIS_HOST` | No | `localhost` | Redis hostname for email-verification codes |
+| `REDIS_PORT` | No | `6379` | Redis port for email-verification codes |
+| `GOOGLE_CLIENT_ID` | For Google sign-in | — | Google OAuth 2.0 client ID |
+| `GOOGLE_CLIENT_SECRET` | For Google sign-in | — | Google OAuth 2.0 client secret |
 
 ## Roadmap
 
@@ -427,6 +486,8 @@ The current context test starts the Spring application, so it requires valid env
 - [x] Role-based admin authorization
 - [x] Environment-based secrets
 - [x] User and user-category operations
+- [x] Redis-backed email verification codes
+- [x] Google OpenID Connect sign-in
 - [ ] Script CRUD endpoints and service layer
 - [ ] Script-category endpoints and service layer
 - [ ] User-profile endpoints and service layer

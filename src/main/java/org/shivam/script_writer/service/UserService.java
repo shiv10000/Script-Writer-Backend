@@ -6,12 +6,14 @@ import org.shivam.script_writer.entity.User;
 import org.shivam.script_writer.entity.UserCategory;
 import org.shivam.script_writer.repo.UserCategoryRepository;
 import org.shivam.script_writer.repo.UserRepository;
+import org.shivam.script_writer.util.AccountStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -30,8 +32,8 @@ public class UserService {
 
 
     public UserResponse createUser(UserRequest userRequest){
-        if(userRepository.findByName(userRequest.name()).isPresent()){
-            throw new RuntimeException("User already exist");
+        if (userRepository.existsByEmailIgnoreCase(userRequest.email())) {
+            throw new RuntimeException("Email already exists");
         }
 
         UserCategory userCategory = userCategoryRepository.findByName(DEFAULT_USER_CATEGORY)
@@ -42,7 +44,6 @@ public class UserService {
                 userRequest.email(),
                 passwordEncoder.encode(userRequest.password()),
                 userCategory));
-
 
         return new UserResponse(
                 savedUser.getId(),
@@ -126,5 +127,13 @@ public class UserService {
     }
 
 
+    public User markEnabled(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
+        user.setStatus(AccountStatus.ENABLED);
+
+        return userRepository.save(user);
+
+    }
 }

@@ -12,6 +12,23 @@ public interface UserRepository extends JpaRepository<User,Long> {
     @EntityGraph(attributePaths = "userCategory")
     Optional<User> findByName(String name);
 
+    @EntityGraph(attributePaths = "userCategory")
+    Optional<User> findByGoogleSubject(String googleSubject);
+
+    @EntityGraph(attributePaths = "userCategory")
+    Optional<User> findByEmailIgnoreCase(String email);
+
+    Optional<User> findByEmail(String email);
+
+
+    boolean existsByEmailIgnoreCase(String email);
+
+
+
+
+
 
     boolean existsByUserCategory_Name(String categoryName);
+
+
 }

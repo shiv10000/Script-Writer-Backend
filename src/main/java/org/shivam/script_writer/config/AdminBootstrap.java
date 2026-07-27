@@ -47,8 +47,8 @@ public class AdminBootstrap implements ApplicationRunner {
 
         validateBootstrapCredentials();
 
-        if (userRepository.findByName(adminName).isPresent()) {
-            throw new IllegalStateException("Cannot bootstrap admin: username already exists");
+        if (userRepository.findByEmailIgnoreCase(adminEmail).isPresent()) {
+            throw new IllegalStateException("Cannot bootstrap admin: email already exists");
         }
 
         UserCategory adminCategory = userCategoryRepository.findByName(ADMIN_CATEGORY)

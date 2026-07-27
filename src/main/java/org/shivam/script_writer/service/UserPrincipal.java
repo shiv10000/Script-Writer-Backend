@@ -3,6 +3,7 @@ package org.shivam.script_writer.service;
 import org.jspecify.annotations.Nullable;
 import org.shivam.script_writer.entity.User;
 import org.shivam.script_writer.repo.UserRepository;
+import org.shivam.script_writer.util.AccountStatus;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -30,6 +31,10 @@ public class UserPrincipal implements UserDetails {
         );
     }
 
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 
     @Override
     public @Nullable String getPassword() {
@@ -38,7 +43,7 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public String getUsername() {
-        return user.getName();
-
+        return user.getEmail();
     }
+
 }
